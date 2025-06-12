@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DormDish - College Meal Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .tab-active { border-bottom-color: #0d9488; color: #0d9488; }
+        .meal-item { cursor: grab; transition: transform 0.2s, box-shadow 0.2s; }
+        .meal-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .meal-item.dragging { opacity: 0.5; cursor: grabbing; }
+        .day-cell { min-height: 200px; }
+        .meal-type-Breakfast { background-color: #E0F2F1; border-left-color: #4DB6AC; }
+        .meal-type-Lunch { background-color: #FFF9C4; border-left-color: #FFD54F; }
+        .meal-type-Dinner { background-color: #F8BBD0; border-left-color: #F06292; }
+        .meal-type-Snack { background-color: #E1F5FE; border-left-color: #4FC3F7; }
+        .dot-Breakfast { background-color: #4DB6AC; }
+        .dot-Lunch { background-color: #FFD54F; }
+        .dot-Dinner { background-color: #F06292; }
+        .dot-Snack { background-color: #4FC3F7; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 lg:p-8">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl lg:text-5xl font-bold text-teal-600"><i class="fas fa-utensils mr-2"></i>DormDish</h1>
+            <p class="text-gray-500 mt-2">Your friendly college meal planning assistant</p>
+        </header>
+
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="-mb-px flex justify-center space-x-6" aria-label="Tabs">
+                <button id="weekly-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg tab-active">Weekly Planner</button>
+                <button id="monthly-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">Monthly View</button>
+                <button id="mealbook-tab" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">Meal Book</button>
+            </nav>
+        </div>
+
+        <!-- VIEWS -->
+        <div id="weekly-view">
+            <div id="calendar-container" class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                <div class="flex justify-between items-center mb-4"><button id="prev-week" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-chevron-left"></i></button><h2 id="current-week" class="text-xl lg:text-2xl font-semibold text-gray-700 text-center"></h2><button id="next-week" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-chevron-right"></i></button></div>
+                <div class="grid grid-cols-7 text-center font-bold text-gray-500 mb-2"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+                <div id="calendar-grid" class="calendar-grid gap-2"></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div id="meal-details-container" class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg hidden"><div class="flex justify-between items-center"><h3 class="text-2xl font-bold text-teal-700">Meal Details</h3><button id="close-details" class="text-gray-500 hover:text-red-500"><i class="fas fa-times fa-lg"></i></button></div><div id="meal-details-content" class="mt-4"></div></div><div id="grocery-list-container" class="bg-white p-6 rounded-2xl shadow-lg"><h3 class="text-2xl font-bold text-teal-700 mb-4 flex items-center"><i class="fas fa-shopping-cart mr-3"></i>Grocery List</h3><p class="text-sm text-gray-500 mb-4">Auto-generated from meals in the current week.</p><div id="grocery-list" class="space-y-3 h-96 overflow-y-auto pr-2"></div><button id="copy-grocery-list" class="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg flex items-center justify-center"><i class="fas fa-copy mr-2"></i> Copy List</button></div></div>
+        </div>
+
+        <div id="monthly-view" class="hidden"><div class="bg-white p-6 rounded-2xl shadow-lg"><div class="flex justify-between items-center mb-4"><button id="prev-month" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-chevron-left"></i></button><h2 id="current-month" class="text-xl lg:text-2xl font-semibold text-gray-700 text-center"></h2><button id="next-month" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-chevron-right"></i></button></div><div class="grid grid-cols-7 text-center font-bold text-gray-500 mb-2"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div><div id="monthly-calendar-grid" class="calendar-grid gap-1"></div></div></div>
+        
+        <div id="mealbook-view" class="hidden"><div class="bg-white p-6 rounded-2xl shadow-lg"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl lg:text-3xl font-bold text-teal-700">My Meal Book</h2><input type="text" id="mealbook-search" placeholder="Search meals..." class="border-gray-300 rounded-lg shadow-sm focus:border-teal-500 focus:ring-teal-500"></div><div id="mealbook-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div></div></div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="add-meal-options-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-30"><div class="bg-white rounded-lg p-8 space-y-4"><h3 class="text-xl font-bold text-center mb-4">Add a Meal</h3><button id="choose-from-book-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg">Choose from Meal Book</button><button id="create-new-meal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg">Create New Meal</button><button id="cancel-add-options" class="mt-4 text-sm text-gray-600 hover:text-black">Cancel</button></div></div>
+    <div id="meal-book-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-40"><div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl"><h2 class="text-2xl font-bold mb-4 text-teal-700">Choose a Meal</h2><input type="text" id="modal-mealbook-search" placeholder="Search meals..." class="w-full border-gray-300 rounded-lg mb-4"><div id="modal-mealbook-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto"></div><button id="cancel-choose-book" class="mt-4 text-gray-600 hover:text-black">Cancel</button></div></div>
+    <div id="meal-type-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg p-8 space-y-3"><h3 class="text-xl font-bold text-center mb-2">What type of meal?</h3><button class="w-full bg-teal-100 hover:bg-teal-200 text-teal-800 font-bold py-2 px-4 rounded-lg" data-meal-type="Breakfast">Breakfast</button><button class="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold py-2 px-4 rounded-lg" data-meal-type="Lunch">Lunch</button><button class="w-full bg-pink-100 hover:bg-pink-200 text-pink-800 font-bold py-2 px-4 rounded-lg" data-meal-type="Dinner">Dinner</button><button class="w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2 px-4 rounded-lg" data-meal-type="Snack">Snack</button></div></div>
+    <div id="meal-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-30"><div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl transform transition-all" id="modal-content"><h2 class="text-2xl font-bold mb-6 text-teal-700" id="modal-title">Add Meal</h2><form id="meal-form"><input type="hidden" id="meal-id"><input type="hidden" id="meal-date"><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label for="meal-title" class="block text-gray-700 font-medium mb-1">Meal Name</label><input type="text" id="meal-title" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-teal-500 focus:ring-teal-500" required></div><div><label for="meal-type" class="block text-gray-700 font-medium mb-1">Meal Type</label><select id="meal-type" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-teal-500 focus:ring-teal-500"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div><div><label for="meal-calories" class="block text-gray-700 font-medium mb-1">Calories (kcal)</label><input type="number" id="meal-calories" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-teal-500 focus:ring-teal-500" min="0"></div></div><div class="mb-4"><label class="block text-gray-700 font-medium mb-1">Ingredients</label><div id="ingredient-inputs" class="space-y-2"></div><button type="button" id="add-ingredient" class="mt-2 text-teal-600 hover:text-teal-800 font-semibold"><i class="fas fa-plus mr-1"></i> Add Ingredient</button></div><div class="mb-4"><label for="meal-instructions" class="block text-gray-700 font-medium mb-1">Instructions</label><textarea id="meal-instructions" rows="4" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-teal-500 focus:ring-teal-500"></textarea></div><div class="flex justify-end space-x-4 mt-8"><button type="button" id="cancel-meal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancel</button><button type="submit" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg">Save</button></div></form></div></div>
+    <div id="message-box" class="fixed top-5 right-5 bg-teal-500 text-white py-2 px-4 rounded-lg shadow-md hidden z-50"><p id="message-text"></p></div>
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-40"><div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center"><h3 class="text-lg font-bold text-gray-800 mb-4">Are you sure?</h3><p class="text-gray-600 mb-6">Do you really want to delete this meal? This cannot be undone.</p><div class="flex justify-center space-x-4"><button id="cancel-delete" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg">Cancel</button><button id="confirm-delete" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg">Delete</button></div></div></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- STATE ---
+        let currentDate = new Date();
+        let meals = JSON.parse(localStorage.getItem('dormDishMeals_v5')) || [];
+        let mealBook = JSON.parse(localStorage.getItem('dormDishMealBook_v5')) || [];
+        let mealToDelete = null;
+        let currentView = 'weekly';
+        let dateForNewMeal = null;
+
+        // --- DOM ELEMENTS ---
+        const weeklyView = document.getElementById('weekly-view'), monthlyView = document.getElementById('monthly-view'), mealbookView = document.getElementById('mealbook-view');
+        const weeklyTab = document.getElementById('weekly-tab'), monthlyTab = document.getElementById('monthly-tab'), mealbookTab = document.getElementById('mealbook-tab');
+        const calendarGrid = document.getElementById('calendar-grid'), currentWeekEl = document.getElementById('current-week');
+        const monthlyCalendarGrid = document.getElementById('monthly-calendar-grid'), currentMonthEl = document.getElementById('current-month');
+        const mealbookList = document.getElementById('mealbook-list'), mealbookSearch = document.getElementById('mealbook-search');
+        const mealModal = document.getElementById('meal-modal'), mealDetailsContainer = document.getElementById('meal-details-container'), groceryListEl = document.getElementById('grocery-list');
+        const messageBox = document.getElementById('message-box'), deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const addMealOptionsModal = document.getElementById('add-meal-options-modal');
+        const mealBookModal = document.getElementById('meal-book-modal');
+        const mealTypePromptModal = document.getElementById('meal-type-prompt-modal');
+
+        // --- CORE LOGIC ---
+        const saveData = () => {
+            localStorage.setItem('dormDishMeals_v5', JSON.stringify(meals));
+            localStorage.setItem('dormDishMealBook_v5', JSON.stringify(mealBook));
+        };
+
+        const switchView = (view) => {
+            currentView = view;
+            [weeklyView, monthlyView, mealbookView].forEach(v => v.classList.add('hidden'));
+            [weeklyTab, monthlyTab, mealbookTab].forEach(t => t.classList.remove('tab-active'));
+            if (view === 'weekly') { weeklyView.classList.remove('hidden'); weeklyTab.classList.add('tab-active'); renderWeeklyCalendar(); }
+            if (view === 'monthly') { monthlyView.classList.remove('hidden'); monthlyTab.classList.add('tab-active'); renderMonthlyCalendar(); }
+            if (view === 'mealbook') { mealbookView.classList.remove('hidden'); mealbookTab.classList.add('tab-active'); renderMealBook(); }
+        };
+
+        const showMessage = (message, duration = 3000) => {
+            const messageText = document.getElementById('message-text');
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => messageBox.classList.add('hidden'), duration);
+        };
+
+        const getWeek = (date) => [0,1,2,3,4,5,6].map(i => { const d = new Date(date); d.setDate(d.getDate() - d.getDay() + i); return d; });
+        const isToday = (date) => new Date().toDateString() === date.toDateString();
+
+        const addMealToBook = (mealData) => {
+            const existingIndex = mealBook.findIndex(m => m.title.toLowerCase() === mealData.title.toLowerCase());
+            const newEntry = { title: mealData.title, calories: mealData.calories, ingredients: mealData.ingredients, instructions: mealData.instructions };
+            if (existingIndex === -1) {
+                mealBook.push({ ...newEntry, id: Date.now().toString() });
+            } else {
+                mealBook[existingIndex] = { ...mealBook[existingIndex], ...newEntry };
+            }
+        };
+
+        // --- RENDER FUNCTIONS ---
+        const renderWeeklyCalendar = () => {
+            calendarGrid.innerHTML = '';
+            const week = getWeek(currentDate);
+            currentWeekEl.textContent = `${week[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${week[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            week.forEach(day => {
+                const dayStr = day.toDateString();
+                const dayEl = document.createElement('div');
+                dayEl.className = 'day-cell border border-gray-200 rounded-lg p-2 bg-gray-50 flex flex-col';
+                dayEl.dataset.date = day.toISOString();
+                
+                const dayHeader = document.createElement('div');
+                dayHeader.className = `text-center font-medium mb-2 flex items-center justify-center mx-auto w-8 h-8 rounded-full ${isToday(day) ? 'bg-teal-500 text-white' : ''}`;
+                dayHeader.textContent = day.getDate();
+                
+                const mealsContainer = document.createElement('div');
+                mealsContainer.className = 'meals-container space-y-2 overflow-y-auto flex-grow';
+                const dayMeals = meals.filter(m => new Date(m.date).toDateString() === dayStr);
+                
+                ['Breakfast', 'Lunch', 'Dinner', 'Snack'].forEach(mealType => {
+                    const mealsOfType = dayMeals.filter(m => m.mealType === mealType);
+                    if (mealsOfType.length > 0) {
+                        mealsContainer.innerHTML += `<h5 class="text-xs font-bold text-gray-500 mt-1 px-1">${mealType}</h5>`;
+                        mealsOfType.forEach(meal => {
+                            const mealEl = document.createElement('div');
+                            mealEl.textContent = meal.title;
+                            mealEl.className = `meal-item meal-type-${meal.mealType} text-sm p-1.5 rounded-md border-l-4 transition`;
+                            mealEl.draggable = true;
+                            mealEl.dataset.mealId = meal.id;
+                            mealEl.onclick = () => showMealDetails(meal);
+                            mealEl.addEventListener('dragstart', handleDragStart);
+                            mealsContainer.appendChild(mealEl);
+                        });
+                    }
+                });
+                
+                const dayFooter = document.createElement('div');
+                dayFooter.className = 'mt-auto pt-2 border-t border-gray-200 flex justify-between items-center';
+                const totalCalories = dayMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+                dayFooter.innerHTML = `<div class="text-xs text-gray-600 font-semibold"><i class="fas fa-fire-alt text-orange-400"></i> ${totalCalories} kcal</div>`;
+                const addMealBtn = document.createElement('button');
+                addMealBtn.className = 'add-meal-btn text-teal-500 hover:text-teal-700 p-1 rounded-full hover:bg-gray-200 w-7 h-7 flex items-center justify-center';
+                addMealBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                addMealBtn.onclick = () => openAddMealOptions(day);
+                dayFooter.appendChild(addMealBtn);
+
+                dayEl.appendChild(dayHeader);
+                dayEl.appendChild(mealsContainer);
+                dayEl.appendChild(dayFooter);
+                dayEl.addEventListener('dragover', handleDragOver);
+                dayEl.addEventListener('drop', handleDrop);
+                calendarGrid.appendChild(dayEl);
+            });
+            renderGroceryList();
+        };
+
+        const renderMonthlyCalendar = () => {
+            monthlyCalendarGrid.innerHTML = '';
+            currentMonthEl.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const month = currentDate.getMonth(), year = currentDate.getFullYear();
+            const firstDayOfMonth = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let i = 0; i < firstDayOfMonth; i++) monthlyCalendarGrid.appendChild(document.createElement('div'));
+            for (let i = 1; i <= daysInMonth; i++) {
+                const day = new Date(year, month, i);
+                const dayEl = document.createElement('div');
+                dayEl.className = 'border border-gray-100 p-1 min-h-[100px] flex flex-col hover:bg-gray-200 transition cursor-pointer';
+                dayEl.onclick = () => { currentDate = day; switchView('weekly'); };
+                dayEl.innerHTML = `<div class="text-sm font-medium h-6 w-6 flex items-center justify-center rounded-full ${isToday(day) ? 'bg-teal-500 text-white' : 'text-gray-600'}">${i}</div><div class="dots-container flex-grow flex flex-wrap gap-1 mt-2"></div>`;
+                const dotsContainer = dayEl.querySelector('.dots-container');
+                const dayMeals = meals.filter(m => new Date(m.date).toDateString() === day.toDateString());
+                const mealTypesPresent = [...new Set(dayMeals.map(m => m.mealType))];
+                mealTypesPresent.forEach(type => {
+                    dotsContainer.innerHTML += `<div class="w-2 h-2 rounded-full dot-${type}" title="${type}"></div>`;
+                });
+                monthlyCalendarGrid.appendChild(dayEl);
+            }
+        };
+        const renderMealBook = (searchTerm = '') => {
+            mealbookList.innerHTML = '';
+            const filteredBook = mealBook.filter(m => m.title.toLowerCase().includes(searchTerm.toLowerCase()));
+            if(filteredBook.length === 0) mealbookList.innerHTML = `<p class="text-gray-500 italic col-span-full">Your meal book is empty.</p>`;
+            filteredBook.forEach(meal => {
+                const card = document.createElement('div');
+                card.className = 'border rounded-lg p-4 bg-white shadow-sm';
+                card.innerHTML = `<h4 class="font-bold text-lg text-teal-700">${meal.title}</h4><p class="text-sm text-gray-500 mt-1"><i class="fas fa-fire-alt text-orange-400 mr-1"></i>${meal.calories || 0} kcal</p><p class="text-sm text-gray-600 mt-2 truncate">${meal.instructions || 'No instructions.'}</p>`;
+                mealbookList.appendChild(card);
+            });
+        };
+        const renderGroceryList = () => {
+            const week = getWeek(currentDate);
+            const startOfWeek = new Date(week[0]); startOfWeek.setHours(0,0,0,0);
+            const endOfWeek = new Date(week[6]); endOfWeek.setHours(23,59,59,999);
+            const weekMeals = meals.filter(m => { const d = new Date(m.date); return d >= startOfWeek && d <= endOfWeek; });
+            const aggregated = {};
+            weekMeals.flatMap(m => m.ingredients).forEach(ing => {
+                if (!ing.name || ing.quantity <= 0) return;
+                const key = `${ing.name.toLowerCase().trim()}|${ing.unit.toLowerCase().trim()}`;
+                if (aggregated[key]) { aggregated[key].quantity += ing.quantity; }
+                else { aggregated[key] = { name: ing.name.trim(), quantity: ing.quantity, unit: ing.unit.trim() }; }
+            });
+            groceryListEl.innerHTML = '';
+            const sorted = Object.values(aggregated).sort((a,b) => a.name.localeCompare(b.name));
+            if (sorted.length > 0) {
+                sorted.forEach(ing => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center bg-gray-100 p-2 rounded-lg';
+                    li.innerHTML = `<input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 mr-3 flex-shrink-0"><span class="flex-grow">${ing.name}</span><span class="font-semibold text-gray-600 ml-2">${ing.quantity} ${ing.unit}</span>`;
+                    groceryListEl.appendChild(li);
+                });
+            } else { groceryListEl.innerHTML = '<p class="text-gray-500 italic">No meals planned for this week.</p>'; }
+        };
+
+        // --- EVENT HANDLERS & MODAL LOGIC ---
+        const handleDragStart = (e) => {
+            e.dataTransfer.setData('text/plain', e.target.dataset.mealId);
+            e.target.classList.add('dragging');
+        };
+        const handleDragOver = (e) => e.preventDefault();
+        const handleDrop = (e) => {
+            e.preventDefault();
+            const mealId = e.dataTransfer.getData('text/plain');
+            const targetCell = e.target.closest('.day-cell');
+            document.querySelector('.dragging')?.classList.remove('dragging');
+            if (!mealId || !targetCell) return;
+            const targetDate = new Date(targetCell.dataset.date);
+            const originalMeal = meals.find(m => m.id === mealId) || mealBook.find(m => m.id === mealId);
+            if (!originalMeal) return;
+            mealTypePromptModal.classList.remove('hidden');
+            mealTypePromptModal.querySelectorAll('button').forEach(btn => {
+                btn.onclick = () => {
+                    const newMealType = btn.dataset.mealType;
+                    meals.push({ ...originalMeal, id: Date.now().toString(), date: targetDate.toISOString(), mealType: newMealType });
+                    saveData();
+                    renderWeeklyCalendar();
+                    mealTypePromptModal.classList.add('hidden');
+                };
+            });
+        };
+
+        const openAddMealOptions = (date) => {
+            dateForNewMeal = date;
+            addMealOptionsModal.classList.remove('hidden');
+        };
+        const openMealBookModal = () => {
+            addMealOptionsModal.classList.add('hidden');
+            mealBookModal.classList.remove('hidden');
+            const listEl = document.getElementById('modal-mealbook-list');
+            const searchEl = document.getElementById('modal-mealbook-search');
+            const renderList = (term = '') => {
+                listEl.innerHTML = '';
+                mealBook.filter(m => m.title.toLowerCase().includes(term.toLowerCase())).forEach(meal => {
+                    const card = document.createElement('div');
+                    card.className = 'border rounded p-3 cursor-pointer hover:bg-gray-100';
+                    card.innerHTML = `<h5 class="font-semibold">${meal.title}</h5><p class="text-sm text-gray-500"><i class="fas fa-fire-alt text-orange-400 mr-1"></i>${meal.calories || 0} kcal</p>`;
+                    card.onclick = () => { mealBookModal.classList.add('hidden'); openMealModal(dateForNewMeal, meal, true); };
+                    listEl.appendChild(card);
+                });
+            };
+            searchEl.oninput = () => renderList(searchEl.value);
+            renderList();
+        };
+
+        const openMealModal = (date, mealToEdit = null, fromBook = false) => {
+            const form = document.getElementById('meal-form'), inputs = document.getElementById('ingredient-inputs');
+            form.reset();
+            inputs.innerHTML = '';
+            document.getElementById('meal-date').value = date.toISOString();
+            if (mealToEdit) {
+                document.getElementById('meal-title').value = mealToEdit.title;
+                document.getElementById('meal-calories').value = mealToEdit.calories || '';
+                document.getElementById('meal-instructions').value = mealToEdit.instructions || '';
+                mealToEdit.ingredients.forEach(ing => addIngredientInput(ing));
+                if(fromBook){
+                    document.getElementById('modal-title').textContent = 'Add from Book';
+                    document.getElementById('meal-id').value = '';
+                } else {
+                    document.getElementById('modal-title').textContent = 'Edit Meal';
+                    document.getElementById('meal-id').value = mealToEdit.id;
+                    document.getElementById('meal-type').value = mealToEdit.mealType;
+                }
+            } else {
+                document.getElementById('modal-title').textContent = 'Create New Meal';
+                document.getElementById('meal-id').value = '';
+                addIngredientInput();
+            }
+            mealModal.classList.remove('hidden');
+        };
+
+        const addIngredientInput = (ing = { name: '', quantity: 1, unit: '' }) => {
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-12 gap-2 items-center';
+            div.innerHTML = `<input type="text" placeholder="Ingredient" value="${ing.name}" class="col-span-6 p-2 text-sm border-gray-300 rounded-md"><input type="number" placeholder="Qty" value="${ing.quantity}" class="col-span-2 p-2 text-sm border-gray-300 rounded-md"><input type="text" placeholder="Unit" value="${ing.unit}" class="col-span-3 p-2 text-sm border-gray-300 rounded-md"><button type="button" class="col-span-1 text-red-500 hover:text-red-700 remove-btn"><i class="fas fa-trash-alt"></i></button>`;
+            div.querySelector('.remove-btn').onclick = () => div.remove();
+            document.getElementById('ingredient-inputs').appendChild(div);
+        };
+        
+        const closeAllModals = () => {
+            [mealModal, deleteConfirmModal, addMealOptionsModal, mealBookModal, mealTypePromptModal].forEach(m => m.classList.add('hidden'));
+        };
+
+        const handleMealFormSubmit = (e) => {
+            e.preventDefault();
+            const mealData = {
+                date: document.getElementById('meal-date').value,
+                title: document.getElementById('meal-title').value.trim(),
+                calories: parseInt(document.getElementById('meal-calories').value) || 0,
+                mealType: document.getElementById('meal-type').value,
+                ingredients: Array.from(document.querySelectorAll('#ingredient-inputs .grid')).map(row => ({ name: row.children[0].value.trim(), quantity: parseFloat(row.children[1].value) || 0, unit: row.children[2].value.trim() })).filter(i => i.name),
+                instructions: document.getElementById('meal-instructions').value.trim()
+            };
+            if (!mealData.title) return showMessage('Meal name is required.');
+            addMealToBook(mealData);
+            const id = document.getElementById('meal-id').value;
+            if (id) {
+                const index = meals.findIndex(m => m.id === id);
+                meals[index] = { ...meals[index], ...mealData };
+            } else {
+                meals.push({ id: Date.now().toString(), ...mealData });
+            }
+            saveData();
+            closeAllModals();
+            if (currentView === 'weekly') { renderWeeklyCalendar(); }
+            else if(currentView === 'monthly') { renderMonthlyCalendar();}
+            showMessage('Meal saved!');
+        };
+        
+        const showMealDetails = (meal) => {
+            const mealDetailsContent = document.getElementById('meal-details-content');
+            const ingredientsHtml = meal.ingredients.map(i => `<tr class="border-b"><td class="py-2 pr-4">${i.name}</td><td class="py-2 text-right">${i.quantity} ${i.unit}</td></tr>`).join('') || '<tr><td class="py-2" colspan="2">No ingredients listed.</td></tr>';
+            mealDetailsContent.innerHTML = `<h4 class="text-xl font-semibold mb-2">${meal.title} <span class="text-base font-normal text-gray-500">- ${meal.mealType}</span></h4><p class="text-sm text-gray-500"><i class="fas fa-fire-alt text-orange-400 mr-1"></i>${meal.calories || 0} kcal</p><p class="text-gray-500 mb-4">${new Date(meal.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p><div class="mt-4"><h5 class="font-bold mb-2 text-teal-600">Ingredients:</h5><table class="w-full text-left">${ingredientsHtml}</table></div><div class="mt-4"><h5 class="font-bold mb-2 text-teal-600">Instructions:</h5><p class="whitespace-pre-wrap">${meal.instructions || 'No instructions provided.'}</p></div><div class="mt-6 flex space-x-3"><button id="edit-meal-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-edit mr-2"></i>Edit</button><button id="delete-meal-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-trash mr-2"></i>Delete</button></div>`;
+            mealDetailsContainer.classList.remove('hidden');
+            mealDetailsContainer.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('edit-meal-btn').onclick = () => openMealModal(new Date(meal.date), meal);
+            document.getElementById('delete-meal-btn').onclick = () => { mealToDelete = meal.id; deleteConfirmModal.classList.remove('hidden'); };
+        };
+
+        const closeMealDetails = () => mealDetailsContainer.classList.add('hidden');
+        
+        const copyGroceryList = () => {
+            const text = Array.from(groceryListEl.querySelectorAll('li')).map(li => `- ${li.querySelector('.flex-grow').textContent} (${li.querySelector('.font-semibold').textContent})`).join('\n');
+            if (!text) return showMessage('Grocery list is empty!', 2000);
+            navigator.clipboard.writeText("My Grocery List:\n" + text).then(() => showMessage('Copied!', 2000)).catch(() => showMessage('Failed to copy.', 3000));
+        };
+        
+        const handleDelete = () => {
+            if (mealToDelete) {
+                meals = meals.filter(m => m.id !== mealToDelete);
+                saveData();
+                if (currentView === 'weekly') renderWeeklyCalendar();
+                else renderMonthlyCalendar();
+                closeMealDetails();
+                showMessage('Meal deleted.', 2000);
+            }
+            deleteConfirmModal.classList.add('hidden');
+            mealToDelete = null;
+        };
+
+        // --- EVENT LISTENERS ---
+        [weeklyTab, monthlyTab, mealbookTab].forEach(tab => tab.addEventListener('click', () => switchView(tab.id.replace('-tab', ''))));
+        ['prev-week', 'next-week', 'prev-month', 'next-month'].forEach(id => document.getElementById(id).addEventListener('click', (e) => {
+            const action = e.currentTarget.id;
+            if (action.includes('week')) currentDate.setDate(currentDate.getDate() + (action.startsWith('prev') ? -7 : 7));
+            if (action.includes('month')) currentDate.setMonth(currentDate.getMonth() + (action.startsWith('prev') ? -1 : 1));
+            if (currentView === 'weekly') renderWeeklyCalendar(); else renderMonthlyCalendar();
+        }));
+        
+        document.getElementById('add-ingredient').addEventListener('click', () => addIngredientInput());
+        document.getElementById('cancel-meal').addEventListener('click', closeAllModals);
+        document.getElementById('choose-from-book-btn').addEventListener('click', openMealBookModal);
+        document.getElementById('create-new-meal-btn').addEventListener('click', () => { addMealOptionsModal.classList.add('hidden'); openMealModal(dateForNewMeal); });
+        document.getElementById('cancel-add-options').addEventListener('click', closeAllModals);
+        document.getElementById('cancel-choose-book').addEventListener('click', closeAllModals);
+        document.getElementById('meal-form').addEventListener('submit', handleMealFormSubmit);
+        mealbookSearch.addEventListener('input', () => renderMealBook(mealbookSearch.value));
+        document.getElementById('close-details').addEventListener('click', closeMealDetails);
+        document.getElementById('copy-grocery-list').addEventListener('click', copyGroceryList);
+        document.getElementById('cancel-delete').addEventListener('click', () => { deleteConfirmModal.classList.add('hidden'); mealToDelete = null; });
+        document.getElementById('confirm-delete').addEventListener('click', handleDelete);
+
+        // --- INITIALIZATION ---
+        switchView('weekly');
+    });
+    </script>
+</body>
+</html>
