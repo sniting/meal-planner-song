@@ -69,7 +69,9 @@
     </div>
 
     <!-- MODALS -->
-    <div id="add-event-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-30"><div class="bg-white rounded-lg p-8 space-y-4"><h3 class="text-xl font-bold text-center mb-4">Add to Your Day</h3><button id="add-meal-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg">Add Meal</button><button id="add-routine-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg">Add Routine</button><button id="cancel-add-event" class="mt-4 text-sm text-gray-600 hover:text-black">Cancel</button></div></div>
+    <div id="add-event-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-30"><div class="bg-white rounded-lg p-8 space-y-4"><h3 class="text-xl font-bold text-center mb-4">Add to Your Day</h3><button id="add-meal-from-planner-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg">Add Meal</button><button id="add-routine-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg">Add Routine</button><button id="cancel-add-event" class="mt-4 text-sm text-gray-600 hover:text-black">Cancel</button></div></div>
+    <div id="add-meal-source-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-40"><div class="bg-white rounded-lg p-8 space-y-4"><h3 class="text-xl font-bold text-center mb-4">Add a Meal</h3><button id="choose-from-book-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg">Choose from Meal Book</button><button id="create-new-meal-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg">Create New Meal</button><button id="cancel-add-meal-source" class="mt-4 text-sm text-gray-600 hover:text-black">Cancel</button></div></div>
+    <div id="meal-book-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-40"><div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl"><h2 class="text-2xl font-bold mb-4 text-teal-700">Choose a Meal</h2><input type="text" id="modal-mealbook-search" placeholder="Search meals..." class="w-full border-gray-300 rounded-lg mb-4"><div id="modal-mealbook-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto"></div><button id="cancel-choose-book" class="mt-4 text-gray-600 hover:text-black">Cancel</button></div></div>
     <div id="select-routine-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-40"><div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl"><h2 class="text-2xl font-bold mb-4 text-indigo-700">Select a Routine</h2><div id="modal-routine-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto"></div><button id="cancel-select-routine" class="mt-4 text-gray-600 hover:text-black">Cancel</button></div></div>
 
     <div id="time-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"><div class="bg-white rounded-lg p-8 space-y-4"><h3 class="text-xl font-bold text-center mb-4">Schedule Routine</h3><form id="time-form"><div class="flex gap-4"><div class="w-1/2"><label for="start-time" class="block text-sm font-medium text-gray-700">Start Time</label><input type="time" id="start-time" name="start-time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required></div><div class="w-1/2"><label for="end-time" class="block text-sm font-medium text-gray-700">End Time</label><input type="time" id="end-time" name="end-time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></div></div><div class="flex justify-end gap-3 mt-6"><button type="button" id="cancel-time-prompt" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button><button type="submit" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">Save</button></div></form></div></div>
@@ -84,7 +86,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- STATE ---
-        const V = 'v11'; 
+        const V = 'v12'; 
         const APP_NAME = 'fitBuddy';
 
         let currentDate = new Date();
@@ -121,6 +123,8 @@
 
         // Modals
         const addEventModal = document.getElementById('add-event-modal');
+        const addMealSourceModal = document.getElementById('add-meal-source-modal');
+        const mealBookModal = document.getElementById('meal-book-modal');
         const selectRoutineModal = document.getElementById('select-routine-modal');
         const timePromptModal = document.getElementById('time-prompt-modal');
         const mealModal = document.getElementById('meal-modal');
@@ -171,6 +175,23 @@
             const civilianHours = ((hours + 11) % 12 + 1);
             return `${civilianHours}:${m} ${suffix}`;
         };
+        
+        function parseFraction(fraction) {
+            if (typeof fraction === 'number') return fraction;
+            if (typeof fraction !== 'string') return 0;
+            fraction = fraction.trim();
+            if (fraction.includes('/')) {
+                const parts = fraction.split('/');
+                if (parts.length === 2) {
+                    const num = parseFloat(parts[0]);
+                    const den = parseFloat(parts[1]);
+                    if (!isNaN(num) && !isNaN(den) && den !== 0) {
+                        return num / den;
+                    }
+                }
+            }
+            return parseFloat(fraction) || 0;
+        }
 
         const upsertMealInBook = (mealData) => {
             const mealId = document.getElementById('meal-id').value;
@@ -178,16 +199,23 @@
 
             if (mealId) {
                 existingIndex = mealBook.findIndex(m => m.id === mealId);
-            } else {
-                 existingIndex = mealBook.findIndex(m => m.title.toLowerCase() === mealData.title.toLowerCase());
             }
 
+            const bookEntry = {
+                title: mealData.title,
+                mealType: mealData.mealType,
+                calories: mealData.calories,
+                url: mealData.url,
+                ingredients: mealData.ingredients,
+                instructions: mealData.instructions,
+            };
+
             if (existingIndex !== -1) {
-                mealBook[existingIndex] = { ...mealBook[existingIndex], ...mealData };
-                 return mealBook[existingIndex].id;
+                mealBook[existingIndex] = { ...mealBook[existingIndex], ...bookEntry };
+                return mealBook[existingIndex].id;
             } else {
                 const newId = 'book-' + Date.now();
-                mealBook.push({ id: newId, ...mealData });
+                mealBook.push({ id: newId, ...bookEntry });
                 return newId;
             }
         };
@@ -261,7 +289,51 @@
             return eventEl;
         }
 
-        const renderMonthlyCalendar = () => { /* ... existing logic, which is correct ... */ };
+        const renderMonthlyCalendar = () => {
+             monthlyCalendarGrid.innerHTML = '';
+            currentMonthEl.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const month = currentDate.getMonth(), year = currentDate.getFullYear();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                monthlyCalendarGrid.appendChild(document.createElement('div'));
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const day = new Date(year, month, i);
+                const dayStr = day.toDateString();
+                const dayEl = document.createElement('div');
+                dayEl.className = 'border border-gray-100 p-1 min-h-[120px] flex flex-col hover:bg-gray-200 transition cursor-pointer';
+                dayEl.onclick = () => { currentDate = day; switchView('weekly'); };
+                
+                const dayEvents = events.filter(e => new Date(e.date).toDateString() === dayStr);
+                const dayMeals = dayEvents.filter(e => e.type === 'meal');
+                const totalCalories = dayMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+                
+                let caloriesHtml = '';
+                if (totalCalories > 0) {
+                    caloriesHtml = `<div class="text-xs text-gray-500 font-semibold mt-1"><i class="fas fa-fire-alt text-orange-400"></i> ${totalCalories}</div>`;
+                }
+
+                dayEl.innerHTML = `
+                    <div class="text-sm font-medium h-6 w-6 flex items-center justify-center rounded-full ${isToday(day) ? 'bg-teal-500 text-white' : 'text-gray-600'}">${i}</div>
+                    ${caloriesHtml}
+                    <div class="dots-container flex-grow flex flex-wrap gap-1 mt-2"></div>
+                `;
+
+                const dotsContainer = dayEl.querySelector('.dots-container');
+                const mealTypesPresent = [...new Set(dayMeals.map(m => m.mealType))];
+                mealTypesPresent.forEach(type => {
+                    dotsContainer.innerHTML += `<div class="w-2 h-2 rounded-full dot-${type}" title="${type}"></div>`;
+                });
+                if (dayEvents.some(e => e.type === 'routine')) {
+                    dotsContainer.innerHTML += `<div class="w-2 h-2 rounded-full dot-routine" title="Routine"></div>`;
+                }
+
+                monthlyCalendarGrid.appendChild(dayEl);
+            }
+        };
 
         const renderMealBook = (searchTerm = '') => {
             mealbookList.innerHTML = '';
@@ -279,14 +351,78 @@
             mealbookList.querySelectorAll('.delete-meal-btn').forEach(btn => btn.onclick = () => confirmDelete({type: 'mealbook', id: btn.dataset.mealId}));
         };
 
-        const renderRoutines = () => { /* ... existing logic ... */ };
-        const renderGroceryList = () => { /* ... existing logic ... */ };
+        const renderRoutines = () => {
+            routineList.innerHTML = '';
+            if (routines.length === 0) {
+                routineList.innerHTML = `<p class="text-gray-500 italic col-span-full text-center mt-4">No routines created yet. Click "Add Routine" to start!</p>`;
+            }
+            routines.forEach(routine => {
+                const card = document.createElement('div');
+                card.className = 'border rounded-lg p-4 bg-white shadow-sm flex justify-between items-center';
+                card.innerHTML = `
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">${routine.name}</h4>
+                    </div>
+                    <div class="space-x-2">
+                        <button class="edit-routine-btn text-gray-500 hover:text-blue-500" data-routine-id="${routine.id}"><i class="fas fa-edit"></i></button>
+                        <button class="delete-routine-btn text-gray-500 hover:text-red-500" data-routine-id="${routine.id}"><i class="fas fa-trash"></i></button>
+                    </div>`;
+                routineList.appendChild(card);
+            });
+            routineList.querySelectorAll('.edit-routine-btn').forEach(btn => btn.onclick = () => openRoutineModal(routines.find(r => r.id === btn.dataset.routineId)));
+            routineList.querySelectorAll('.delete-routine-btn').forEach(btn => btn.onclick = () => confirmDelete({type: 'routine', id: btn.dataset.routineId}));
+        };
+
+        const renderGroceryList = () => {
+            const week = getWeek(currentDate);
+            const startOfWeek = new Date(week[0]); startOfWeek.setHours(0,0,0,0);
+            const endOfWeek = new Date(week[6]); endOfWeek.setHours(23,59,59,999);
+            const weekMeals = events.filter(e => {
+                if (e.type !== 'meal') return false;
+                const d = new Date(e.date);
+                return d >= startOfWeek && d <= endOfWeek;
+            });
+            const aggregated = {};
+            weekMeals.flatMap(m => m.ingredients || []).forEach(ing => {
+                if (!ing.name || !ing.quantity) return;
+                const quantity = parseFraction(ing.quantity);
+                const key = `${ing.name.toLowerCase().trim()}|${(ing.unit || '').toLowerCase().trim()}`;
+                if (aggregated[key]) { aggregated[key].quantity += quantity; }
+                else { aggregated[key] = { name: ing.name.trim(), quantity: quantity, unit: (ing.unit || '').trim() }; }
+            });
+            groceryListEl.innerHTML = '';
+            const sorted = Object.values(aggregated).sort((a,b) => a.name.localeCompare(b.name));
+            if (sorted.length > 0) {
+                sorted.forEach(ing => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center bg-gray-100 p-2 rounded-lg';
+                    li.innerHTML = `<input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 mr-3 flex-shrink-0"><span class="flex-grow">${ing.name}</span><span class="font-semibold text-gray-600 ml-2">${ing.quantity} ${ing.unit}</span>`;
+                    groceryListEl.appendChild(li);
+                });
+            } else { groceryListEl.innerHTML = '<p class="text-gray-500 italic">No meals planned for this week.</p>'; }
+        };
 
         // --- EVENT HANDLERS & MODAL LOGIC ---
         let draggedEventId = null;
-        const handleDragStart = (e) => { /* ... existing logic ... */ };
+        const handleDragStart = (e) => {
+             draggedEventId = e.target.dataset.eventId;
+            e.dataTransfer.setData('text/plain', draggedEventId);
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        };
         const handleDragOver = (e) => e.preventDefault();
-        const handleDrop = (e) => { /* ... existing logic ... */ };
+        const handleDrop = (e) => {
+             e.preventDefault();
+            const targetCell = e.target.closest('.day-cell');
+            document.querySelector('.dragging')?.classList.remove('dragging');
+            if (!draggedEventId || !targetCell) return;
+            const event = events.find(ev => ev.id === draggedEventId);
+            if (event) {
+                event.date = targetCell.dataset.date;
+                saveData();
+                renderWeeklyCalendar();
+            }
+            draggedEventId = null;
+        };
         
         const closeAllModals = () => {
             document.querySelectorAll('.fixed.inset-0').forEach(m => m.classList.add('hidden'));
@@ -297,10 +433,10 @@
             addEventModal.classList.remove('hidden');
         };
 
-        const addIngredientInput = (ing = { name: '', quantity: 1, unit: '' }) => {
+        const addIngredientInput = (ing = { name: '', quantity: '1', unit: '' }) => {
             const div = document.createElement('div');
             div.className = 'grid grid-cols-12 gap-2 items-center';
-            div.innerHTML = `<input type="text" placeholder="Ingredient" value="${ing.name}" class="col-span-6 p-2 text-sm border-gray-300 rounded-md ingredient-name"><input type="number" placeholder="Qty" value="${ing.quantity}" class="col-span-2 p-2 text-sm border-gray-300 rounded-md ingredient-qty"><input type="text" placeholder="Unit" value="${ing.unit}" class="col-span-3 p-2 text-sm border-gray-300 rounded-md ingredient-unit"><button type="button" class="col-span-1 text-red-500 hover:text-red-700 remove-btn"><i class="fas fa-trash-alt"></i></button>`;
+            div.innerHTML = `<input type="text" placeholder="Ingredient" value="${ing.name}" class="col-span-6 p-2 text-sm border-gray-300 rounded-md ingredient-name"><input type="text" placeholder="Qty (e.g., 1/2)" value="${ing.quantity}" class="col-span-2 p-2 text-sm border-gray-300 rounded-md ingredient-qty"><input type="text" placeholder="Unit" value="${ing.unit}" class="col-span-3 p-2 text-sm border-gray-300 rounded-md ingredient-unit"><button type="button" class="col-span-1 text-red-500 hover:text-red-700 remove-btn"><i class="fas fa-trash-alt"></i></button>`;
             div.querySelector('.remove-btn').onclick = () => div.remove();
             document.getElementById('ingredient-inputs').appendChild(div);
         };
@@ -326,8 +462,75 @@
             mealModal.classList.remove('hidden');
         };
         
-        const openSelectRoutineModal = () => { /* ... existing logic ... */ };
-        const openRoutineModal = (routine = null) => { /* ... existing logic ... */ };
+        const openMealBookModal = () => {
+            const listEl = document.getElementById('modal-mealbook-list');
+            const searchEl = document.getElementById('modal-mealbook-search');
+            const renderList = (term = '') => {
+                listEl.innerHTML = '';
+                const filteredBook = mealBook.filter(m => m.title.toLowerCase().includes(term.toLowerCase()));
+                if(filteredBook.length === 0) {
+                    listEl.innerHTML = `<p class="text-gray-500 italic col-span-full">No meals found in your book.</p>`;
+                }
+                filteredBook.forEach(meal => {
+                    const card = document.createElement('div');
+                    card.className = 'border rounded p-3 cursor-pointer hover:bg-gray-100';
+                    card.innerHTML = `<h5 class="font-semibold">${meal.title}</h5><p class="text-sm text-gray-500"><i class="fas fa-fire-alt text-orange-400 mr-1"></i>${meal.calories || 0} kcal</p>`;
+                    card.onclick = () => { 
+                        const newMealEvent = {
+                            ...meal,
+                            id: 'event-' + Date.now(),
+                            mealBookId: meal.id,
+                            type: 'meal',
+                            date: dateForNewEvent.toISOString(),
+                        };
+                        events.push(newMealEvent);
+                        saveData();
+                        closeAllModals();
+                        renderWeeklyCalendar();
+                    };
+                    listEl.appendChild(card);
+                });
+            };
+            searchEl.oninput = () => renderList(searchEl.value);
+            renderList();
+            mealBookModal.classList.remove('hidden');
+        };
+
+        const openSelectRoutineModal = () => {
+             const listEl = document.getElementById('modal-routine-list');
+            listEl.innerHTML = '';
+            if(routines.length === 0) {
+                 listEl.innerHTML = `<p class="text-gray-500 italic col-span-full">No routines found. Go to the "Routines" tab to create one.</p>`;
+            }
+            routines.forEach(routine => {
+                const card = document.createElement('div');
+                card.className = 'border rounded p-3 cursor-pointer hover:bg-gray-100 flex items-center gap-3';
+                card.innerHTML = `<h5 class="font-semibold">${routine.name}</h5>`;
+                card.onclick = () => {
+                    pendingEvent = {
+                        type: 'routine',
+                        title: routine.name
+                    };
+                    selectRoutineModal.classList.add('hidden');
+                    timePromptModal.classList.remove('hidden');
+                };
+                listEl.appendChild(card);
+            });
+            selectRoutineModal.classList.remove('hidden');
+        };
+        const openRoutineModal = (routine = null) => {
+            const form = document.getElementById('routine-form');
+            form.reset();
+            if (routine) {
+                document.getElementById('routine-modal-title').textContent = 'Edit Routine';
+                document.getElementById('routine-id').value = routine.id;
+                document.getElementById('routine-name').value = routine.name;
+            } else {
+                document.getElementById('routine-modal-title').textContent = 'Add New Routine';
+                document.getElementById('routine-id').value = '';
+            }
+            routineModal.classList.remove('hidden');
+        };
 
         document.getElementById('meal-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -338,7 +541,7 @@
                 url: document.getElementById('meal-url').value.trim(),
                 ingredients: Array.from(document.querySelectorAll('#ingredient-inputs > div')).map(row => ({ 
                     name: row.querySelector('.ingredient-name').value.trim(),
-                    quantity: parseFloat(row.querySelector('.ingredient-qty').value) || 0,
+                    quantity: row.querySelector('.ingredient-qty').value || '0',
                     unit: row.querySelector('.ingredient-unit').value.trim()
                 })).filter(i => i.name),
                 instructions: document.getElementById('meal-instructions').value.trim()
@@ -368,7 +571,22 @@
             dateForNewEvent = null; 
         });
 
-        document.getElementById('routine-form').addEventListener('submit', (e) => { /* ... existing logic ... */ });
+        document.getElementById('routine-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('routine-id').value;
+            const name = document.getElementById('routine-name').value.trim();
+            if (!name) return showMessage('Routine name is required.');
+
+            if (id) {
+                const index = routines.findIndex(r => r.id === id);
+                routines[index] = { ...routines[index], name };
+            } else {
+                routines.push({ id: 'routine-' + Date.now(), name });
+            }
+            saveData();
+            renderRoutines();
+            routineModal.classList.add('hidden');
+        });
         
         document.getElementById('time-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -421,8 +639,7 @@
                 showMessage('Event deleted.');
             } else if (itemToDelete.type === 'mealbook') {
                 mealBook = mealBook.filter(m => m.id !== itemToDelete.id);
-                // also remove any scheduled instances of this meal
-                events = events.filter(e => e.mealBookId !== itemToDelete.id);
+                events = events.filter(e => e.type !== 'meal' || e.mealBookId !== itemToDelete.id);
                 showMessage('Meal deleted from book and calendar.');
             } else if (itemToDelete.type === 'routine') {
                 const routineToDelete = routines.find(r => r.id === itemToDelete.id);
@@ -450,6 +667,8 @@
         
         document.getElementById('add-ingredient').addEventListener('click', () => addIngredientInput());
         document.getElementById('cancel-add-event').addEventListener('click', closeAllModals);
+        document.getElementById('cancel-add-meal-source').addEventListener('click', closeAllModals);
+        document.getElementById('cancel-choose-book').addEventListener('click', closeAllModals);
         document.getElementById('cancel-select-routine').addEventListener('click', closeAllModals);
         document.getElementById('cancel-time-prompt').addEventListener('click', closeAllModals);
         document.getElementById('cancel-meal').addEventListener('click', closeAllModals);
@@ -458,15 +677,17 @@
         
         document.getElementById('add-new-routine-btn').addEventListener('click', () => openRoutineModal());
         document.getElementById('add-new-meal-btn').addEventListener('click', () => {
-             dateForNewEvent = null; // Ensure we're not adding to calendar
+             dateForNewEvent = null; 
              openMealModal();
         });
 
-        document.getElementById('add-meal-btn').addEventListener('click', () => { 
+        document.getElementById('add-meal-from-planner-btn').addEventListener('click', () => { 
             addEventModal.classList.add('hidden'); 
-            // This button now directly opens the meal modal for creating a new meal to be added to the calendar
-             openMealModal();
+            addMealSourceModal.classList.remove('hidden');
         });
+        document.getElementById('create-new-meal-btn').addEventListener('click', () => { addMealSourceModal.classList.add('hidden'); openMealModal(); });
+        document.getElementById('choose-from-book-btn').addEventListener('click', () => { addMealSourceModal.classList.add('hidden'); openMealBookModal(); });
+
         document.getElementById('add-routine-btn').addEventListener('click', () => { addEventModal.classList.add('hidden'); openSelectRoutineModal(); });
         
         document.getElementById('confirm-delete').addEventListener('click', handleDelete);
